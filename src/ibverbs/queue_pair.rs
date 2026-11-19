@@ -425,7 +425,7 @@ pub trait QueuePair {
     }
 }
 
-mod private_traits {
+pub(crate) mod private_traits {
     use std::io::IoSlice;
 
     use rdma_mummy_sys::ibv_sge;
@@ -1216,8 +1216,8 @@ impl QueuePairBuilder {
 /// attributes with [`QueuePair::query`] or modifying current [`QueuePair`] attributes with
 /// [`QueuePair::modify`].
 pub struct QueuePairAttribute {
-    attr: ibv_qp_attr,
-    attr_mask: QueuePairAttributeMask,
+    pub(crate) attr: ibv_qp_attr,
+    pub(crate) attr_mask: QueuePairAttributeMask,
 }
 
 impl Default for QueuePairAttribute {
@@ -1615,7 +1615,7 @@ fn attr_mask_check(
 
 /// A handle that user would use to fill the concrete information of the RDMA Work Request.
 pub struct WorkRequestHandle<'g, G: PostSendGuard + ?Sized> {
-    guard: &'g mut G,
+    pub(crate) guard: &'g mut G,
 }
 
 /// Setup scatter gather entry (sge) for a Work Request.
@@ -1918,19 +1918,24 @@ impl PostSendGuard for ExtendedPostSendGuard<'_> {
         // do not run the dtor
         std::mem::forget(self);
 
-        match ret {
-            0 => Ok(()),
-            libc::EINVAL => Err(PostSendError::InvalidWorkRequest(io::Error::from_raw_os_error(
-                libc::EINVAL,
-            ))),
-            libc::ENOMEM => Err(PostSendError::NotEnoughResources(io::Error::from_raw_os_error(
-                libc::ENOMEM,
-            ))),
-            libc::EFAULT => Err(PostSendError::InvalidQueuePair(io::Error::from_raw_os_error(
-                libc::EFAULT,
-            ))),
-            err => Err(PostSendError::Ibverbs(io::Error::from_raw_os_error(err))),
-        }
+        wr_complete_result(ret)
+    }
+}
+
+/// Map the return value of [`ibv_wr_complete`] to a [`PostSendError`].
+pub(crate) fn wr_complete_result(ret: i32) -> Result<(), PostSendError> {
+    match ret {
+        0 => Ok(()),
+        libc::EINVAL => Err(PostSendError::InvalidWorkRequest(io::Error::from_raw_os_error(
+            libc::EINVAL,
+        ))),
+        libc::ENOMEM => Err(PostSendError::NotEnoughResources(io::Error::from_raw_os_error(
+            libc::ENOMEM,
+        ))),
+        libc::EFAULT => Err(PostSendError::InvalidQueuePair(io::Error::from_raw_os_error(
+            libc::EFAULT,
+        ))),
+        err => Err(PostSendError::Ibverbs(io::Error::from_raw_os_error(err))),
     }
 }
 
