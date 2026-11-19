@@ -9,3 +9,7 @@ pub mod ibverbs;
 /// The wrapper over [librdmacm](https://github.com/linux-rdma/rdma-core/tree/master/librdmacm),
 /// which is the in-band (compared to TCP, which is out-of-band) connection manager for RDMA.
 pub mod rdmacm;
+
+/// Extensions for NVIDIA mlx5 devices, built on mlx5 direct verbs, such as the Dynamically
+/// Connected (DC) transport.
+pub mod mlx5;
