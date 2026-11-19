@@ -9,6 +9,7 @@ use std::ptr::NonNull;
 use std::sync::Arc;
 
 use super::{
+    address::{AddressHandle, AddressHandleAttribute, CreateAddressHandleError},
     device_context::DeviceContext,
     memory_region::{MemoryRegion, RegisterMemoryRegionError},
     queue_pair::QueuePairBuilder,
@@ -109,6 +110,16 @@ impl ProtectionDomain {
     /// later.
     pub fn create_srq_builder(self: &Arc<Self>) -> SharedReceiveQueueBuilder {
         SharedReceiveQueueBuilder::new(self)
+    }
+
+    /// Create an [`AddressHandle`] on this protection domain, with [`ibv_create_ah`].
+    ///
+    /// [`ibv_create_ah`]: https://man7.org/linux/man-pages/man3/ibv_create_ah.3.html
+    ///
+    pub fn create_ah(
+        self: &Arc<Self>, attr: &AddressHandleAttribute,
+    ) -> Result<Arc<AddressHandle>, CreateAddressHandleError> {
+        Ok(Arc::new(AddressHandle::new(self, attr)?))
     }
 
     /// # Safety
